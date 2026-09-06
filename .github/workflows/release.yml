@@ -1,0 +1,125 @@
+name: Release
+
+# Every push to main becomes a release:
+#   1. "version" picks the number (see scripts/next-version.mjs), writes it to
+#      package.json, commits that back to main and tags the commit.
+#   2. The three build pipelines package that tag, one per operating system.
+#   3. "publish" collects the packages and opens a GitHub Release for the tag.
+#
+# Old releases are never touched. The minor version moves on its own; to cut a
+# major version, set it in package.json by hand (for example 2.0.0) and push,
+# or run this workflow manually and choose "major".
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+      - '.github/workflows/ci.yml'
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Which part of the version to raise
+        type: choice
+        required: true
+        default: auto
+        options: [auto, minor, major, patch]
+
+# One release at a time. A second push waits instead of racing for the number.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  version:
+    name: Pick the version and tag main
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.next.outputs.version }}
+      tag: ${{ steps.next.outputs.tag }}
+      sha: ${{ steps.next.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Decide the next version
+        id: next
+        run: |
+          set -euo pipefail
+          BUMP="${{ github.event.inputs.bump || 'auto' }}"
+          NEXT="$(node scripts/next-version.mjs "$BUMP")"
+          CURRENT="$(node -p "require('./package.json').version")"
+          echo "current $CURRENT -> next $NEXT ($BUMP)"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ "$NEXT" != "$CURRENT" ]; then
+            npm version "$NEXT" --no-git-tag-version
+            git commit -am "chore(release): v$NEXT [skip ci]"
+          fi
+          git tag -a "v$NEXT" -m "PST Monster v$NEXT"
+          git push origin HEAD:main
+          git push origin "v$NEXT"
+
+          echo "version=$NEXT" >> "$GITHUB_OUTPUT"
+          echo "tag=v$NEXT" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  linux:
+    needs: version
+    uses: ./.github/workflows/build-linux.yml
+    with:
+      ref: ${{ needs.version.outputs.sha }}
+      version: ${{ needs.version.outputs.version }}
+
+  windows:
+    needs: version
+    uses: ./.github/workflows/build-windows.yml
+    with:
+      ref: ${{ needs.version.outputs.sha }}
+      version: ${{ needs.version.outputs.version }}
+
+  macos:
+    needs: version
+    uses: ./.github/workflows/build-macos.yml
+    with:
+      ref: ${{ needs.version.outputs.sha }}
+      version: ${{ needs.version.outputs.version }}
+
+  publish:
+    name: Publish the GitHub Release
+    needs: [version, linux, windows, macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.version.outputs.sha }}
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Checksums
+        run: |
+          cd dist
+          rm -f builder-debug.yml
+          sha256sum * > SHA256SUMS.txt
+          ls -la
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.version.outputs.tag }}
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          gh release create "$TAG" dist/* \
+            --title "PST Monster v$VERSION" \
+            --target "${{ needs.version.outputs.sha }}" \
+            --generate-notes \
+            --latest

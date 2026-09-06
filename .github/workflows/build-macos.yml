@@ -1,0 +1,55 @@
+name: Build macOS
+
+# Builds the macOS packages. Called by release.yml for every release, and can be
+# run by hand on any branch to get installers as workflow artifacts without
+# cutting a release.
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: Commit or tag to build
+        type: string
+        required: true
+      version:
+        description: Version to stamp into the package (empty keeps package.json)
+        type: string
+        required: false
+        default: ''
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Commit, branch or tag to build
+        type: string
+        required: false
+        default: main
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Stamp the release version
+        if: inputs.version != ''
+        shell: bash
+        run: npm version "${{ inputs.version }}" --no-git-tag-version --allow-same-version
+      - run: npm run build
+      - run: npm test
+      - name: Package
+        run: npx electron-builder --mac --publish never
+        env:
+          # No Apple Developer certificate: ship unsigned and unnotarised.
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pst-monster-macos
+          path: |
+            release/*.dmg
+            release/*.zip
+          if-no-files-found: error

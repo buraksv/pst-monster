@@ -1,0 +1,45 @@
+name: CI
+
+# Runs the type check, the unit tests, a production build and both smoke tests
+# on every operating system the app ships for, so a change that only works on
+# the developer's machine is caught before it reaches main.
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Ubuntu
+            os: ubuntu-latest
+          - name: Windows
+            os: windows-latest
+          - name: macOS
+            os: macos-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npx electron-vite build
+      - name: Smoke tests (Linux, under a virtual display)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb
+          xvfb-run --auto-servernum npm run smoke:worker
+          xvfb-run --auto-servernum npm run smoke:window
+      - name: Smoke tests
+        if: runner.os != 'Linux'
+        run: |
+          npm run smoke:worker
+          npm run smoke:window

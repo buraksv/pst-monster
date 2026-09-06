@@ -1,0 +1,115 @@
+appId: com.buraksv.pstmonster
+productName: PST Monster
+copyright: MIT License
+
+directories:
+  buildResources: resources
+  output: release
+
+files:
+  # The bundles, plus the production dependencies they load at runtime: the PST
+  # reader and the mail composer stay external rather than being bundled, so
+  # their own dynamic requires keep working.
+  - out/**
+  - package.json
+  # The window icon on Linux; see main/index.ts.
+  - resources/icon.png
+  - node_modules/**
+  - '!**/*.map'
+  - '!node_modules/**/{test,tests,example,examples,doc,docs,.github}/**'
+  - '!node_modules/**/*.{md,ts,map}'
+
+asarUnpack:
+  # The workers are launched with utilityProcess.fork, and Node cannot execute a
+  # file from inside an asar archive. Their dependencies have to sit outside too:
+  # module resolution walks up real directories and never looks into the archive.
+  - out/main/convert-worker.js
+  - out/main/zip-worker.js
+  - node_modules/**
+
+# Nothing here is downloaded after installation: the runtime, the app and every
+# dependency ship inside the package.
+electronDownload:
+  cache: .electron-cache
+
+# Releases are created by the workflow in .github/workflows/release.yml, which
+# uploads the files itself; electron-builder never talks to GitHub.
+publish: null
+
+# ---------------------------------------------------------------- Windows ----
+win:
+  target:
+    # An installer for people who want a Start menu entry, and a single .exe for
+    # people who would rather just run it.
+    - target: nsis
+      arch: [x64]
+    - target: portable
+      arch: [x64]
+  # Each target below names its own file; this is only a fallback.
+  artifactName: ${name}-${version}-windows-${arch}.${ext}
+  # Unsigned: SmartScreen shows a warning the first time. Signing needs a
+  # certificate the project does not have.
+  signAndEditExecutable: true
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  artifactName: ${name}-${version}-windows-setup.${ext}
+
+portable:
+  artifactName: ${name}-${version}-windows-portable.${ext}
+
+# ------------------------------------------------------------------ macOS ----
+mac:
+  target:
+    # Both architectures, so Apple Silicon and Intel Macs each get a native build.
+    - target: dmg
+      arch: [arm64, x64]
+    - target: zip
+      arch: [arm64, x64]
+  category: public.app-category.utilities
+  darkModeSupport: true
+  artifactName: ${name}-${version}-macos-${arch}.${ext}
+  # No Apple Developer certificate, so the app ships unsigned and unnotarised.
+  # Gatekeeper needs the user to allow it once; the README explains how.
+  identity: null
+  hardenedRuntime: false
+  gatekeeperAssess: false
+
+dmg:
+  artifactName: ${name}-${version}-macos-${arch}.${ext}
+
+# ------------------------------------------------------------------ Linux ----
+linux:
+  target:
+    # .deb is the smooth path on Ubuntu: apt pulls the few system libraries any
+    # desktop already has. AppImage needs FUSE, which Ubuntu has not installed by
+    # default since 22.04, so a plain .tar.gz is offered as the dependency-free
+    # extract-and-run option.
+    - target: deb
+      arch: [x64]
+    - target: tar.gz
+      arch: [x64]
+    - target: AppImage
+      arch: [x64]
+  category: Utility
+  # Fixed so the binary inside the tar.gz and the .desktop entry keep the same
+  # name whatever productName says; the README refers to it.
+  executableName: pst-monster
+  # Debian requires a maintainer.
+  maintainer: Burak Savaşkan <buraksavaskan@gmail.com>
+  synopsis: Converts an Outlook PST archive into .eml files
+  description: |
+    PST Monster converts messages in an Outlook .pst archive into .eml files that new
+    Outlook can import, keeping the original folder structure.
+  syncDesktopName: true
+  artifactName: ${name}-${version}-linux-${arch}.${ext}
+
+appImage:
+  artifactName: ${name}-${version}-linux-${arch}.${ext}
+
+deb:
+  artifactName: ${name}-${version}-linux-${arch}.${ext}

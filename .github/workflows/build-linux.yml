@@ -1,0 +1,56 @@
+name: Build Linux
+
+# Builds the Linux packages. Called by release.yml for every release, and can be
+# run by hand on any branch to get installers as workflow artifacts without
+# cutting a release.
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: Commit or tag to build
+        type: string
+        required: true
+      version:
+        description: Version to stamp into the package (empty keeps package.json)
+        type: string
+        required: false
+        default: ''
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Commit, branch or tag to build
+        type: string
+        required: false
+        default: main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Stamp the release version
+        if: inputs.version != ''
+        shell: bash
+        run: npm version "${{ inputs.version }}" --no-git-tag-version --allow-same-version
+      - run: npm run build
+      - run: npm test
+      - name: Package
+        run: npx electron-builder --linux --publish never
+        env:
+          # Not needed on Linux; kept so the three files stay alike.
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pst-monster-linux
+          path: |
+            release/*.deb
+            release/*.AppImage
+            release/*.tar.gz
+          if-no-files-found: error

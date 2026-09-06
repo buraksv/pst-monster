@@ -1,0 +1,75 @@
+{
+  "name": "pst-monster",
+  "version": "0.1.0",
+  "description": "PST Monster devours Outlook .pst archives and turns them into .eml files, folder structure intact",
+  "main": "./out/main/index.js",
+  "author": "Burak Savaşkan",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "npm run typecheck && electron-vite build",
+    "start": "electron-vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "cli": "tsx scripts/convert-cli.ts",
+    "pack:linux": "npm run build && electron-builder --linux",
+    "pack:win": "npm run build && electron-builder --win",
+    "pack:mac": "npm run build && electron-builder --mac",
+    "smoke:worker": "electron scripts/smoke-worker.cjs",
+    "smoke:window": "node scripts/smoke-window.cjs",
+    "verify": "npm run build && npm test && npm run smoke:window",
+    "capture": "npm run build && node scripts/capture-screens.cjs",
+    "pack": "npm run build && electron-builder",
+    "version:next": "node scripts/next-version.mjs"
+  },
+  "dependencies": {
+    "archiver": "^7.0.1",
+    "iconv-lite": "^0.7.3",
+    "mime-types": "^3.0.2",
+    "nodemailer": "^10.0.0",
+    "pst-extractor": "^1.12.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "rtf-stream-parser": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/archiver": "^6.0.4",
+    "@types/mime-types": "^3.0.1",
+    "@types/node": "^22.20.1",
+    "@types/nodemailer": "^7.0.12",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@types/ws": "^8.18.1",
+    "@vitejs/plugin-react": "^5.2.0",
+    "electron": "^44.2.0",
+    "electron-builder": "^26.15.3",
+    "electron-vite": "^5.0.0",
+    "tsx": "^4.23.13",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.6",
+    "vitest": "^3.2.7",
+    "ws": "^8.21.3"
+  },
+  "homepage": "https://github.com/buraksv/pst-monster",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/buraksv/pst-monster.git"
+  },
+  "bugs": {
+    "url": "https://github.com/buraksv/pst-monster/issues"
+  },
+  "desktopName": "pst-monster.desktop",
+  "keywords": [
+    "pst",
+    "eml",
+    "outlook",
+    "converter",
+    "electron",
+    "email",
+    "migration"
+  ]
+}
