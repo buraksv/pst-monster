@@ -27,10 +27,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref }}
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -46,7 +46,7 @@ jobs:
         env:
           # Not needed on Linux; kept so the three files stay alike.
           CSC_IDENTITY_AUTO_DISCOVERY: false
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: pst-monster-linux
           path: |
@@ -54,3 +54,8 @@ jobs:
             release/*.AppImage
             release/*.tar.gz
           if-no-files-found: error
+          # These artifacts only carry the packages to the release job, which
+          # attaches them to the GitHub Release. A week is long enough to grab
+          # one from a manual run, short enough that runs stop piling up: each
+          # build is hundreds of megabytes.
+          retention-days: 7

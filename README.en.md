@@ -41,6 +41,11 @@ Grab the file for your operating system from the
 [releases page](https://github.com/buraksv/pst-monster/releases/latest). **Nothing else to
 install**: the runtime, the app and every dependency ship inside the package.
 
+> Every release also shows **Source code (zip)** and **Source code (tar.gz)** links that GitHub
+> attaches by itself. Those are the repository source, not the application: download one and you
+> get `src/`, `package.json` and the rest. The files to install are the ones named in the table
+> below, such as the `.exe` for Windows.
+
 | Operating system | File | What it does |
 | --- | --- | --- |
 | **Windows 10/11** | `pst-monster-*-windows-setup.exe` | Installer, adds a Start menu entry |
@@ -249,7 +254,7 @@ cd pst-monster
 npm install
 npm run dev          # run in development mode
 npm run build        # typecheck and build
-npm test             # 89 unit and end-to-end tests
+npm test             # 100 unit and end-to-end tests
 npm run verify       # build, tests, window smoke test
 ```
 
@@ -275,16 +280,23 @@ npm run cli -- archive.pst ./output --ignore-duplicates
 Every push to `main` becomes a release. The flow lives in
 [`release.yml`](.github/workflows/release.yml):
 
-1. **A version is chosen.** If the version in `package.json` is not tagged yet, it is released
-   as is; otherwise the minor version is bumped (`1.4.0 → 1.5.0`). The new number is written to
-   `package.json`, committed back to `main` and tagged `vX.Y.Z`.
+1. **A version is worked out.** If the version in `package.json` is not tagged yet, it is used as
+   is; otherwise the minor version is bumped (`1.4.0 → 1.5.0`). This step writes nothing to the
+   repository, it only computes the number.
 2. **Three pipelines run in parallel.** [`build-linux.yml`](.github/workflows/build-linux.yml),
    [`build-windows.yml`](.github/workflows/build-windows.yml) and
    [`build-macos.yml`](.github/workflows/build-macos.yml) each run the tests and produce the
-   packages on their own operating system. They can also be started by hand from the Actions
-   tab, which builds packages without cutting a release.
-3. **A GitHub Release is published.** The packages and a `SHA256SUMS.txt` are attached to the
-   tag. Earlier releases are never touched; they all stay on the Releases page.
+   packages on their own operating system. They can also be started by hand from the Actions tab,
+   which produces workflow artifacts without cutting a release.
+3. **The release is published.** This runs only once all three builds have succeeded. It checks
+   that every operating system's packages arrived, writes `SHA256SUMS.txt`, commits the version
+   to `package.json` on `main`, and creates the release together with its tag. Every package is
+   attached to the release's **Assets**, and the notes carry a table saying which file is for
+   which machine, built by [`release-notes.mjs`](scripts/release-notes.mjs).
+
+Tagging happens **after** the builds, not before. A failed build therefore leaves no trace in the
+repository: no orphaned tag, no version number consumed, nothing half-finished on the Releases
+page. Earlier releases are never touched.
 
 Moving to a new major version is the developer's call. Two ways:
 

@@ -41,6 +41,11 @@ açık kaynak ve tamamen çevrimdışıdır.
 uygun dosyayı indirin. **Başka bir şey kurmanıza gerek yok**; çalışma ortamı, uygulama ve tüm
 bağımlılıklar paketin içindedir.
 
+> Her sürümün altında GitHub'ın kendi eklediği **Source code (zip)** ve **Source code (tar.gz)**
+> bağlantıları da görünür. Bunlar uygulamanın kendisi değil, deponun kaynak kodudur; indirirseniz
+> içinde `src/`, `package.json` gibi dosyalar çıkar. Kurulacak dosyalar aşağıdaki tabloda adı
+> geçenlerdir, örneğin Windows için `.exe` uzantılı olan.
+
 | İşletim sistemi | Dosya | Ne yapar |
 | --- | --- | --- |
 | **Windows 10/11** | `pst-monster-*-windows-setup.exe` | Kurulum sihirbazı, Başlat menüsüne ekler |
@@ -250,7 +255,7 @@ cd pst-monster
 npm install
 npm run dev          # geliştirme modunda açar
 npm run build        # tip denetimi + derleme
-npm test             # 89 birim ve uçtan uca test
+npm test             # 100 birim ve uçtan uca test
 npm run verify       # derleme + testler + pencere duman testi
 ```
 
@@ -276,16 +281,23 @@ npm run cli -- arsiv.pst ./cikti --ignore-duplicates
 `main` dalına yapılan her push bir sürüm olur. Akış [`release.yml`](.github/workflows/release.yml)
 içindedir:
 
-1. **Sürüm numarası seçilir.** `package.json` içindeki sürüm henüz etiketlenmemişse olduğu gibi
-   yayınlanır; etiketlenmişse minor artırılır (`1.4.0 → 1.5.0`). Yeni numara `package.json`'a
-   yazılıp `main`'e geri commit'lenir ve `vX.Y.Z` etiketi atılır.
+1. **Sürüm numarası belirlenir.** `package.json` içindeki sürüm henüz etiketlenmemişse olduğu gibi
+   kullanılır; etiketlenmişse minor artırılır (`1.4.0 → 1.5.0`). Bu adım depoya hiçbir şey yazmaz,
+   yalnızca numarayı hesaplar.
 2. **Üç pipeline paralel çalışır.** [`build-linux.yml`](.github/workflows/build-linux.yml),
    [`build-windows.yml`](.github/workflows/build-windows.yml) ve
    [`build-macos.yml`](.github/workflows/build-macos.yml) her biri kendi işletim sisteminde
-   testleri koşturur ve paketleri üretir. Actions sekmesinden elle de çalıştırılabilirler;
-   o zaman sürüm çıkarmadan yalnızca paket üretirler.
-3. **GitHub Release açılır.** Paketler ve `SHA256SUMS.txt` etikete bağlı bir Release olarak
-   yayınlanır. Önceki sürümlere dokunulmaz; hepsi Releases sayfasında kalır.
+   testleri koşturur ve paketleri üretir. Actions sekmesinden elle de çalıştırılabilirler; o zaman
+   sürüm çıkarmadan yalnızca workflow artifact üretirler.
+3. **Release yayınlanır.** Yalnızca üç build de başarılı olursa çalışır. Paketlerin üçünün de
+   geldiği doğrulanır, `SHA256SUMS.txt` üretilir, sürüm numarası `package.json`'a yazılıp `main`'e
+   commit'lenir ve Release ile etiket birlikte oluşturulur. Her paket Release'in **Assets**
+   bölümüne eklenir; sürüm notlarındaki tablo hangi dosyanın hangi işletim sistemi için olduğunu
+   söyler ([`release-notes.mjs`](scripts/release-notes.mjs) üretir).
+
+Etiket build'lerden **sonra** atılır. Bir build başarısız olursa depoda hiçbir iz kalmaz: ne boşta
+kalan bir etiket, ne harcanmış bir sürüm numarası, ne de Releases sayfasında yarım bir kayıt.
+Önceki sürümlere hiç dokunulmaz.
 
 Major sürüm geçişi geliştiricinin elindedir. İki yol var:
 

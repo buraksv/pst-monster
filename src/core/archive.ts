@@ -52,15 +52,24 @@ async function collectFiles(root: string, exclude: string): Promise<FoundFile[]>
       const info = await stat(full)
       found.push({
         path: full,
-        name: relative(root, full).split(sep).join('/'),
+        // macOS stores filenames decomposed (NFD): a name written as "Müşteriler"
+        // comes back from readdir as "Mu" + a combining diaeresis. Windows and
+        // Linux keep whatever was written, normally composed (NFC). Composing the
+        // entry name here means an archive of the same export has identical
+        // entries on all three systems, and extracting a Mac-made archive on
+        // Windows gives back the names Outlook wrote rather than decomposed ones.
+        name: relative(root, full).split(sep).join('/').normalize('NFC'),
         size: info.size,
       })
     }
   }
 
   await walk(root)
-  // A stable order makes two archives of the same export byte-comparable.
-  found.sort((a, b) => a.name.localeCompare(b.name))
+  // A stable order makes two archives of the same export byte-comparable. The
+  // comparison is by code point rather than localeCompare, whose result depends
+  // on the machine's locale and would order the same export differently on two
+  // systems.
+  found.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
   return found
 }
 

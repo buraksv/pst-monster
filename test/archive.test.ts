@@ -59,6 +59,28 @@ describe('createZip', () => {
     await rm(target, { recursive: true, force: true })
   })
 
+  it('composes decomposed filenames, so a Mac archive matches a Windows one', async () => {
+    // What macOS gives back from readdir for a name written as "Müşteriler".
+    const decomposed = 'Gelen Kutusu/Müşteriler'.normalize('NFD')
+    expect(decomposed).not.toBe('Gelen Kutusu/Müşteriler')
+
+    const nfdSource = await mkdtemp(join(tmpdir(), 'pst-monster-zip-nfd-'))
+    try {
+      await mkdir(join(nfdSource, decomposed), { recursive: true })
+      await writeFile(join(nfdSource, decomposed, 'üç.eml'.normalize('NFD')), 'x')
+
+      const zipPath = join(target, 'nfd.zip')
+      await createZip({ sourceDir: nfdSource, zipPath }, () => {}, { cancelled: false })
+
+      const entries = listZipEntries(zipPath)
+      if (entries) {
+        expect(entries).toEqual(['Gelen Kutusu/Müşteriler/üç.eml'])
+      }
+    } finally {
+      await rm(nfdSource, { recursive: true, force: true })
+    }
+  })
+
   it('writes every file, keeping the folder structure', async () => {
     const zipPath = join(target, 'export.zip')
     const summary = await createZip({ sourceDir: source, zipPath }, () => {}, { cancelled: false })

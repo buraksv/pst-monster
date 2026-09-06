@@ -44,6 +44,12 @@ export const MAX_SUBJECT_SEGMENT = 80
  */
 export function sanitizeSegment(raw: string, maxLength: number, fallback: string): string {
   let name = (raw ?? '')
+    // Compose first, so an accented letter is one character everywhere. A PST can
+    // hold either form, and macOS decomposes what it writes: without this, the
+    // same subject in two forms would look like two different names to the
+    // registry below, yet be one file to the filesystem, and the second message
+    // would silently overwrite the first.
+    .normalize('NFC')
     .replace(ILLEGAL, '_')
     .replace(/\s+/g, ' ')
     .trim()

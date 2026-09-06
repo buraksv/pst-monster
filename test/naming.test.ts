@@ -5,6 +5,7 @@ import {
   fitPathLength,
   formatDatePrefix,
   sanitizeFolderName,
+  sanitizeSegment,
 } from '../src/core/naming.js'
 
 describe('sanitizeFolderName', () => {
@@ -106,5 +107,26 @@ describe('fitPathLength', () => {
 
   it('gives up when the directory alone is too deep', () => {
     expect(fitPathLength('/'.padEnd(99, 'd'), 'mail.eml', 100)).toBeNull()
+  })
+})
+
+describe('sanitizeSegment normalization', () => {
+  it('composes a decomposed subject', () => {
+    expect(sanitizeFolderName('Müşteriler'.normalize('NFD'))).toBe('Müşteriler')
+  })
+
+  it('treats the two forms of one name as a single name', () => {
+    // On macOS both land on the same file, so the registry has to see a
+    // collision and suffix the second rather than let it overwrite the first.
+    const registry = new NameRegistry()
+    const composed = sanitizeFolderName('Müşteriler')
+    const decomposed = sanitizeFolderName('Müşteriler'.normalize('NFD'))
+    expect(registry.claim('/out', composed, '.eml')).toBe('Müşteriler.eml')
+    expect(registry.claim('/out', decomposed, '.eml')).toBe('Müşteriler_2.eml')
+  })
+
+  it('counts a composed character once against the length limit', () => {
+    const long = 'ü'.normalize('NFD').repeat(60)
+    expect(sanitizeSegment(long, 50, 'x')).toBe('ü'.repeat(50))
   })
 })
