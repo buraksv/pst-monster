@@ -289,9 +289,9 @@ derlemez:
 | [Increase minor version](.github/workflows/increase-minor-version.yml) | `1.4.0 → 1.5.0` |
 | [Increase major version](.github/workflows/increase-major-version.yml) | `1.4.0 → 2.0.0` |
 
-Çalıştırdığınızda yeni numara `package.json`'a yazılır, `main`'e commit'lenir, `vX.Y.Z` etiketi
-atılır ve o sürüm için **boş bir taslak Release** açılır. Taslak olduğu için Releases sayfasında
-görünmez.
+Çalıştırdığınızda yeni numara `package.json`'a yazılır ve `main`'e commit'lenir. Başka hiçbir
+şey olmaz: etiket atılmaz, boş bir Release açılmaz. Etiketin karşılığı olmayan bir Release,
+ziyaretçinin yanlışlıkla indireceği bir kaynak kodu zip'inden başka bir şey üretmez.
 
 **2. Paketleri üretin.** Üç build pipeline'ını istediğiniz sırada, istediğiniz zaman elle
 çalıştırın:
@@ -300,19 +300,18 @@ görünmez.
 - [Build Windows](.github/workflows/build-windows.yml) → kurulum ve taşınabilir `.exe`
 - [Build macOS](.github/workflows/build-macos.yml) → Apple Silicon ve Intel için `.dmg` ve `.zip`
 
-Her biri `package.json`'daki sürümü derler, testleri koşturur ve ürettiği paketleri **o sürümün
-Release'inin Assets bölümüne** ekler. Sürüm notlarındaki indirme tablosu her yüklemede yeniden
-yazılır, hangi işletim sisteminin paketinin henüz gelmediğini de söyler.
+Her biri `package.json`'daki sürümü derler, testleri koşturur ve ürettiği paketleri o sürümün
+Release'inin **Assets** bölümüne ekler. İlk çalışan build, Release'i ve etiketini birlikte
+oluşturur.
 
-**Yayınlanma kendiliğinden olur.** Üç işletim sisteminin de paketi geldiği anda, o son build
-Release'i taslaklıktan çıkarıp yayınlar. Yani yarım bir sürüm hiçbir zaman herkese görünmez.
+**Release hemen yayınlanır.** Bir build biter bitmez paketleri indirilebilir olur; diğer işletim
+sistemleri beklenmez. Windows build'i başarılı olup macOS çökerse, Windows `.exe` dosyası yine de
+o an indirilebilir durumdadır. Sürüm notlarındaki tablo hangi sistemin paketinin henüz gelmediğini
+açıkça yazar, yani kimse yanıltılmaz.
 
 Bir paketi yeniden derlerseniz eskisinin yerine geçer, kopyası oluşmaz. `SHA256SUMS.txt` de her
 yüklemede güncellenir: diğer işletim sistemlerinin satırları korunur, yalnızca yeniden derilenler
 yenilenir.
-
-Sürüm artırmadan build çalıştırırsanız, `package.json`'daki mevcut sürümün Release'ine eklenir;
-o Release yoksa taslak olarak oluşturulur. İlk sürüm böyle çıkarılabilir.
 
 Bir sonraki numaranın ne olacağını görmek için:
 

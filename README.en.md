@@ -288,8 +288,9 @@ nothing:
 | [Increase minor version](.github/workflows/increase-minor-version.yml) | `1.4.0 → 1.5.0` |
 | [Increase major version](.github/workflows/increase-major-version.yml) | `1.4.0 → 2.0.0` |
 
-Running one writes the new number into `package.json`, commits it to `main`, tags it `vX.Y.Z`
-and opens an **empty draft release** for it. Being a draft, it stays off the Releases page.
+Running one writes the new number into `package.json` and commits it to `main`. Nothing else
+happens: no tag, no empty release. A release with nothing in it, or a tag with nothing attached,
+is only something for a visitor to download by mistake.
 
 **2. Build the packages.** Run the three build pipelines by hand, in any order, whenever you
 like:
@@ -298,19 +299,17 @@ like:
 - [Build Windows](.github/workflows/build-windows.yml) → installer and portable `.exe`
 - [Build macOS](.github/workflows/build-macos.yml) → `.dmg` and `.zip` for Apple Silicon and Intel
 
-Each builds the version in `package.json`, runs the tests, and attaches what it produced to
-**that version's release, under Assets**. The download table in the notes is rewritten on every
-upload and says which operating systems are still missing.
+Each builds the version in `package.json`, runs the tests, and attaches what it produced to that
+version's release under **Assets**. Whichever build finishes first creates the release and its
+tag together.
 
-**Publishing happens on its own.** The moment all three operating systems are in, the build that
-completed the set takes the release out of draft. A half-finished release is never public.
+**The release goes live immediately.** As soon as one build finishes, its packages are
+downloadable; it does not wait for the other operating systems. If the Windows build succeeds and
+macOS fails, the Windows `.exe` is still there to download. The table in the notes says plainly
+which systems are still missing, so nobody is misled.
 
 Rebuilding one system replaces its files instead of duplicating them. `SHA256SUMS.txt` is updated
 the same way: the lines for the other systems are kept, only the rebuilt ones change.
-
-If you run a build without raising the version first, the packages go to the release for whatever
-version `package.json` currently holds, and that release is created as a draft if it does not
-exist. That is how the first release is cut.
 
 To see what the next number would be:
 

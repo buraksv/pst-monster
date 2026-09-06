@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
 #
-# Raises the version in package.json, commits it to main, tags it, and opens an
-# empty draft release for it.
+# Raises the version in package.json and commits it to main. That is all.
 #
-# Nothing is built here. The three build pipelines are run afterwards, by hand,
-# and each attaches its own packages to the release this created. The release
-# stays a draft until all three operating systems are in.
+# It does not tag and does not create a release: an empty release, or a tag with
+# nothing attached to it, is only something for a visitor to download by mistake.
+# The first build pipeline to finish creates the release and its tag together.
 #
 # Usage: scripts/bump-version.sh <minor|major>
 # Expects: gh on the PATH, GH_TOKEN and GITHUB_REPOSITORY in the environment.
@@ -35,17 +34,7 @@ npm version "$NEXT" --no-git-tag-version
 git commit -am "chore: v$NEXT"
 git push origin HEAD:main
 
-git tag -a "$TAG" -m "PST Monster $TAG"
-git push origin "$TAG"
+echo "package.json is now $NEXT on main."
+echo "Run Build Windows, Build Linux or Build macOS; the first one to finish"
+echo "creates release $TAG and puts its packages in it."
 
-# A draft, so the version is not on the Releases page until it has packages.
-gh release create "$TAG" \
-  --repo "$REPO" \
-  --draft \
-  --target "$(git rev-parse HEAD)" \
-  --title "PST Monster $TAG" \
-  --notes "Paketler henüz üretilmedi. Build pipeline'larını çalıştırın.
-
-_No packages yet. Run the build pipelines._"
-
-echo "$TAG is ready. Run Build Linux, Build Windows and Build macOS to fill it."

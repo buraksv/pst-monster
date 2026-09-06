@@ -7,14 +7,42 @@ import { createZip } from '../src/core/archive.js'
 import { suggestZipName } from '../src/shared/zip-name.js'
 import type { ZipProgressEvent } from '../src/core/types.js'
 
-/** Reads the entry names out of a zip with the system unzip, when it exists. */
-function listZipEntries(zipPath: string): string[] | null {
-  try {
-    const output = execFileSync('unzip', ['-Z1', zipPath], { encoding: 'utf8' })
-    return output.split('\n').filter((line) => line.length > 0)
-  } catch {
-    return null
+/**
+ * Reads the entry names out of a zip by walking its central directory.
+ *
+ * Shelling out to `unzip` is not an option. Windows runners have no such
+ * command, so the assertions would quietly be skipped there. The copy macOS
+ * ships mangles any name outside Latin-1: it turns "Müşteriler" into
+ * "Mü?teriler", failing a test over a defect in the listing tool rather than in
+ * the archive. Reading the bytes gives the same answer on all three systems.
+ */
+async function readZipEntries(zipPath: string): Promise<string[]> {
+  const buf = await readFile(zipPath)
+
+  // The end-of-central-directory record sits last, but a trailing comment makes
+  // its offset variable, so it is found by scanning back for its signature.
+  let eocd = -1
+  for (let i = buf.length - 22; i >= 0; i--) {
+    if (buf.readUInt32LE(i) === 0x06054b50) {
+      eocd = i
+      break
+    }
   }
+  if (eocd < 0) throw new Error('not a zip file: no end-of-central-directory record')
+
+  const count = buf.readUInt16LE(eocd + 10)
+  let offset = buf.readUInt32LE(eocd + 16)
+  const names: string[] = []
+  for (let n = 0; n < count; n++) {
+    if (buf.readUInt32LE(offset) !== 0x02014b50) throw new Error('corrupt central directory')
+    const nameLength = buf.readUInt16LE(offset + 28)
+    const extraLength = buf.readUInt16LE(offset + 30)
+    const commentLength = buf.readUInt16LE(offset + 32)
+    // Names are stored as UTF-8; archiver sets the flag that says so.
+    names.push(buf.subarray(offset + 46, offset + 46 + nameLength).toString('utf8'))
+    offset += 46 + nameLength + extraLength + commentLength
+  }
+  return names
 }
 
 describe('suggestZipName', () => {
@@ -72,10 +100,7 @@ describe('createZip', () => {
       const zipPath = join(target, 'nfd.zip')
       await createZip({ sourceDir: nfdSource, zipPath }, () => {}, { cancelled: false })
 
-      const entries = listZipEntries(zipPath)
-      if (entries) {
-        expect(entries).toEqual(['Gelen Kutusu/Müşteriler/üç.eml'])
-      }
+      expect(await readZipEntries(zipPath)).toEqual(['Gelen Kutusu/Müşteriler/üç.eml'])
     } finally {
       await rm(nfdSource, { recursive: true, force: true })
     }
@@ -90,15 +115,12 @@ describe('createZip', () => {
     expect(summary.zipBytes).toBeGreaterThan(0)
     expect((await stat(zipPath)).size).toBe(summary.zipBytes)
 
-    const entries = listZipEntries(zipPath)
-    if (entries) {
-      expect(entries.sort()).toEqual([
-        'Gelen Kutusu/Müşteriler/iki.eml',
-        'Gelen Kutusu/bir.eml',
-        'Gönderilmiş Öğeler/üç.eml',
-        '_export-report.json',
-      ])
-    }
+    expect((await readZipEntries(zipPath)).sort()).toEqual([
+      'Gelen Kutusu/Müşteriler/iki.eml',
+      'Gelen Kutusu/bir.eml',
+      'Gönderilmiş Öğeler/üç.eml',
+      '_export-report.json',
+    ])
   })
 
   it('compresses, so the archive is smaller than what went into it', async () => {
@@ -126,8 +148,7 @@ describe('createZip', () => {
     const summary = await createZip({ sourceDir: source, zipPath }, () => {}, { cancelled: false })
 
     expect(summary.fileCount).toBe(4)
-    const entries = listZipEntries(zipPath)
-    if (entries) expect(entries).not.toContain('export.zip')
+    expect(await readZipEntries(zipPath)).not.toContain('export.zip')
   })
 
   it('refuses an empty folder rather than writing an empty archive', async () => {

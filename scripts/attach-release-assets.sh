@@ -4,9 +4,10 @@
 # package.json.
 #
 # Each operating system has its own pipeline and runs this on its own, so a
-# release fills up one system at a time. The release is a draft while it is
-# incomplete, which keeps a half-empty release off the Releases page; whichever
-# pipeline finishes the set publishes it.
+# release fills up one system at a time. It is published straight away, with
+# whatever is in it: a finished Windows build has to be downloadable even if
+# macOS has not been built, or failed. The notes say which systems are still
+# missing, so nobody is misled about what is there.
 #
 # Re-running a build replaces that system's files rather than adding duplicates.
 #
@@ -32,18 +33,17 @@ fi
 echo "attaching ${#BUILT[@]} file(s) to $TAG"
 
 # ---------------------------------------------------------------------------
-# The release itself. The version pipelines normally create it; this covers the
-# case of building a version that has none yet, such as the very first one.
+# The release itself. The first build of a version creates it; creating it here
+# is also what creates the git tag, so no tag is ever left without a release.
 if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
   echo "release $TAG already exists"
 else
-  echo "creating draft release $TAG"
+  echo "creating release $TAG"
   gh release create "$TAG" \
     --repo "$REPO" \
-    --draft \
     --target "${GITHUB_SHA:-HEAD}" \
     --title "PST Monster $TAG" \
-    --notes "Paketler üretiliyor · Packages are being built."
+    --notes "Paketler yükleniyor · Packages are being uploaded."
 fi
 
 # ---------------------------------------------------------------------------
@@ -67,13 +67,17 @@ gh release view "$TAG" --repo "$REPO" --json assets --jq '.assets[].name' \
 gh release edit "$TAG" --repo "$REPO" --notes-file "$WORK/notes.md"
 
 # ---------------------------------------------------------------------------
-# Publish once every operating system is in.
+# Make sure it is visible. A release left as a draft by an earlier run, or by an
+# older version of this script, is published here: packages that exist are of no
+# use to anyone while they are hidden.
+gh release edit "$TAG" --repo "$REPO" --draft=false
+
+# Say what is still to come, without holding anything back.
 if gh release view "$TAG" --repo "$REPO" --json assets --jq '.assets[].name' \
   | node scripts/release-notes.mjs complete; then
-  echo "all three operating systems present; publishing $TAG"
-  gh release edit "$TAG" --repo "$REPO" --draft=false --latest
+  echo "$TAG now has packages for all three operating systems"
 else
-  echo "$TAG stays a draft until the other systems are built"
+  echo "$TAG is published with what has been built so far"
 fi
 
 echo "done: $(gh release view "$TAG" --repo "$REPO" --json url --jq .url)"
