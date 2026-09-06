@@ -254,7 +254,7 @@ cd pst-monster
 npm install
 npm run dev          # run in development mode
 npm run build        # typecheck and build
-npm test             # 100 unit and end-to-end tests
+npm test             # 115 unit and end-to-end tests
 npm run verify       # build, tests, window smoke test
 ```
 
@@ -277,43 +277,52 @@ npm run cli -- archive.pst ./output --ignore-duplicates
 
 ### Releases and pipelines
 
-Every push to `main` becomes a release. The flow lives in
-[`release.yml`](.github/workflows/release.yml):
+Nothing is triggered by a push. Cutting a release is two steps, both started by hand from the
+Actions tab.
 
-1. **A version is worked out.** If the version in `package.json` is not tagged yet, it is used as
-   is; otherwise the minor version is bumped (`1.4.0 → 1.5.0`). This step writes nothing to the
-   repository, it only computes the number.
-2. **Three pipelines run in parallel.** [`build-linux.yml`](.github/workflows/build-linux.yml),
-   [`build-windows.yml`](.github/workflows/build-windows.yml) and
-   [`build-macos.yml`](.github/workflows/build-macos.yml) each run the tests and produce the
-   packages on their own operating system. They can also be started by hand from the Actions tab,
-   which produces workflow artifacts without cutting a release.
-3. **The release is published.** This runs only once all three builds have succeeded. It checks
-   that every operating system's packages arrived, writes `SHA256SUMS.txt`, commits the version
-   to `package.json` on `main`, and creates the release together with its tag. Every package is
-   attached to the release's **Assets**, and the notes carry a table saying which file is for
-   which machine, built by [`release-notes.mjs`](scripts/release-notes.mjs).
+**1. Raise the version.** Two pipelines, each of which only changes the number and builds
+nothing:
 
-Tagging happens **after** the builds, not before. A failed build therefore leaves no trace in the
-repository: no orphaned tag, no version number consumed, nothing half-finished on the Releases
-page. Earlier releases are never touched.
+| Pipeline | What it does |
+| --- | --- |
+| [Increase minor version](.github/workflows/increase-minor-version.yml) | `1.4.0 → 1.5.0` |
+| [Increase major version](.github/workflows/increase-major-version.yml) | `1.4.0 → 2.0.0` |
 
-Moving to a new major version is the developer's call. Two ways:
+Running one writes the new number into `package.json`, commits it to `main`, tags it `vX.Y.Z`
+and opens an **empty draft release** for it. Being a draft, it stays off the Releases page.
+
+**2. Build the packages.** Run the three build pipelines by hand, in any order, whenever you
+like:
+
+- [Build Linux](.github/workflows/build-linux.yml) → `.deb`, `.tar.gz`, `.AppImage`
+- [Build Windows](.github/workflows/build-windows.yml) → installer and portable `.exe`
+- [Build macOS](.github/workflows/build-macos.yml) → `.dmg` and `.zip` for Apple Silicon and Intel
+
+Each builds the version in `package.json`, runs the tests, and attaches what it produced to
+**that version's release, under Assets**. The download table in the notes is rewritten on every
+upload and says which operating systems are still missing.
+
+**Publishing happens on its own.** The moment all three operating systems are in, the build that
+completed the set takes the release out of draft. A half-finished release is never public.
+
+Rebuilding one system replaces its files instead of duplicating them. `SHA256SUMS.txt` is updated
+the same way: the lines for the other systems are kept, only the rebuilt ones change.
+
+If you run a build without raising the version first, the packages go to the release for whatever
+version `package.json` currently holds, and that release is created as a draft if it does not
+exist. That is how the first release is cut.
+
+To see what the next number would be:
 
 ```bash
-# 1) Set the version in package.json to 2.0.0 by hand and push; that number ships as is.
-npm version major --no-git-tag-version && git commit -am "2.0.0" && git push
-
-# 2) Or open Actions > Release > "Run workflow" and pick "major".
+npm run version:next -- minor
+npm run version:next -- major
 ```
 
-Pushes that only touch `.md` files, `docs/` or `LICENSE` do not produce a release. To see the
-number the next release would get, run `npm run version:next`.
+[`ci.yml`](.github/workflows/ci.yml) is independent of all this: it runs the type check, unit
+tests, build and smoke tests on all three operating systems for every pull request.
 
-[`ci.yml`](.github/workflows/ci.yml) runs the type check, unit tests, build and smoke tests on
-all three operating systems for every pull request.
-
-> For the workflow to commit back to `main`, the repository setting **Settings → Actions →
+> Because the version pipelines commit to `main`, the repository setting **Settings → Actions →
 > General → Workflow permissions** must be **Read and write**. If `main` has branch protection,
 > also add an admin bypass or use a personal access token instead of `GITHUB_TOKEN`.
 

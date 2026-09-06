@@ -255,7 +255,7 @@ cd pst-monster
 npm install
 npm run dev          # geliştirme modunda açar
 npm run build        # tip denetimi + derleme
-npm test             # 100 birim ve uçtan uca test
+npm test             # 115 birim ve uçtan uca test
 npm run verify       # derleme + testler + pencere duman testi
 ```
 
@@ -278,43 +278,53 @@ npm run cli -- arsiv.pst ./cikti --ignore-duplicates
 
 ### Sürümler ve pipeline'lar
 
-`main` dalına yapılan her push bir sürüm olur. Akış [`release.yml`](.github/workflows/release.yml)
-içindedir:
+Hiçbir şey push ile otomatik tetiklenmez. Sürüm çıkarmak iki adımdır ve ikisini de Actions
+sekmesinden elle başlatırsınız.
 
-1. **Sürüm numarası belirlenir.** `package.json` içindeki sürüm henüz etiketlenmemişse olduğu gibi
-   kullanılır; etiketlenmişse minor artırılır (`1.4.0 → 1.5.0`). Bu adım depoya hiçbir şey yazmaz,
-   yalnızca numarayı hesaplar.
-2. **Üç pipeline paralel çalışır.** [`build-linux.yml`](.github/workflows/build-linux.yml),
-   [`build-windows.yml`](.github/workflows/build-windows.yml) ve
-   [`build-macos.yml`](.github/workflows/build-macos.yml) her biri kendi işletim sisteminde
-   testleri koşturur ve paketleri üretir. Actions sekmesinden elle de çalıştırılabilirler; o zaman
-   sürüm çıkarmadan yalnızca workflow artifact üretirler.
-3. **Release yayınlanır.** Yalnızca üç build de başarılı olursa çalışır. Paketlerin üçünün de
-   geldiği doğrulanır, `SHA256SUMS.txt` üretilir, sürüm numarası `package.json`'a yazılıp `main`'e
-   commit'lenir ve Release ile etiket birlikte oluşturulur. Her paket Release'in **Assets**
-   bölümüne eklenir; sürüm notlarındaki tablo hangi dosyanın hangi işletim sistemi için olduğunu
-   söyler ([`release-notes.mjs`](scripts/release-notes.mjs) üretir).
+**1. Sürümü artırın.** İki pipeline var, ikisi de yalnızca numarayı değiştirir, hiçbir şey
+derlemez:
 
-Etiket build'lerden **sonra** atılır. Bir build başarısız olursa depoda hiçbir iz kalmaz: ne boşta
-kalan bir etiket, ne harcanmış bir sürüm numarası, ne de Releases sayfasında yarım bir kayıt.
-Önceki sürümlere hiç dokunulmaz.
+| Pipeline | Ne yapar |
+| --- | --- |
+| [Increase minor version](.github/workflows/increase-minor-version.yml) | `1.4.0 → 1.5.0` |
+| [Increase major version](.github/workflows/increase-major-version.yml) | `1.4.0 → 2.0.0` |
 
-Major sürüm geçişi geliştiricinin elindedir. İki yol var:
+Çalıştırdığınızda yeni numara `package.json`'a yazılır, `main`'e commit'lenir, `vX.Y.Z` etiketi
+atılır ve o sürüm için **boş bir taslak Release** açılır. Taslak olduğu için Releases sayfasında
+görünmez.
+
+**2. Paketleri üretin.** Üç build pipeline'ını istediğiniz sırada, istediğiniz zaman elle
+çalıştırın:
+
+- [Build Linux](.github/workflows/build-linux.yml) → `.deb`, `.tar.gz`, `.AppImage`
+- [Build Windows](.github/workflows/build-windows.yml) → kurulum ve taşınabilir `.exe`
+- [Build macOS](.github/workflows/build-macos.yml) → Apple Silicon ve Intel için `.dmg` ve `.zip`
+
+Her biri `package.json`'daki sürümü derler, testleri koşturur ve ürettiği paketleri **o sürümün
+Release'inin Assets bölümüne** ekler. Sürüm notlarındaki indirme tablosu her yüklemede yeniden
+yazılır, hangi işletim sisteminin paketinin henüz gelmediğini de söyler.
+
+**Yayınlanma kendiliğinden olur.** Üç işletim sisteminin de paketi geldiği anda, o son build
+Release'i taslaklıktan çıkarıp yayınlar. Yani yarım bir sürüm hiçbir zaman herkese görünmez.
+
+Bir paketi yeniden derlerseniz eskisinin yerine geçer, kopyası oluşmaz. `SHA256SUMS.txt` de her
+yüklemede güncellenir: diğer işletim sistemlerinin satırları korunur, yalnızca yeniden derilenler
+yenilenir.
+
+Sürüm artırmadan build çalıştırırsanız, `package.json`'daki mevcut sürümün Release'ine eklenir;
+o Release yoksa taslak olarak oluşturulur. İlk sürüm böyle çıkarılabilir.
+
+Bir sonraki numaranın ne olacağını görmek için:
 
 ```bash
-# 1) package.json içindeki sürümü elle 2.0.0 yapıp push'layın; o numara aynen yayınlanır.
-npm version major --no-git-tag-version && git commit -am "2.0.0" && git push
-
-# 2) Ya da Actions > Release > "Run workflow" deyip "major" seçin.
+npm run version:next -- minor
+npm run version:next -- major
 ```
 
-Yalnızca `.md`, `docs/` ve `LICENSE` değişen push'lar sürüm üretmez. Bir sonraki sürümün
-numarasını görmek için `npm run version:next`.
+[`ci.yml`](.github/workflows/ci.yml) bunlardan bağımsızdır; pull request'lerde üç işletim
+sisteminde tip denetimi, birim testleri, derleme ve duman testlerini çalıştırır.
 
-[`ci.yml`](.github/workflows/ci.yml) ise pull request'lerde üç işletim sisteminde tip denetimi,
-birim testleri, derleme ve duman testlerini çalıştırır.
-
-> İş akışının `main`'e geri commit atabilmesi için depoda **Settings → Actions → General →
+> Sürüm pipeline'ları `main`'e commit attığı için depoda **Settings → Actions → General →
 > Workflow permissions** ayarı **Read and write** olmalıdır. `main` dalında branch protection
 > açıksa ayrıca ya yönetici istisnası tanımlayın ya da `GITHUB_TOKEN` yerine bir PAT kullanın.
 

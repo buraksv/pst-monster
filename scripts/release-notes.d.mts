@@ -1,1 +1,3 @@
-export function buildNotes(files: string[], version: string): string
+export const PLATFORMS: string[]
+export function missingPlatforms(files: Iterable<string>): string[]
+export function buildNotes(files: Iterable<string>, version: string): string

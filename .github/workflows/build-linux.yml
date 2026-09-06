@@ -1,20 +1,16 @@
 name: Build Linux
 
-# Builds the Linux packages. Called by release.yml for every release, and can be
-# run by hand on any branch to get installers as workflow artifacts without
-# cutting a release.
+# Builds the Linux packages for the version currently in package.json and
+# attaches them to that version's GitHub Release.
+#
+# Run this by hand from the Actions tab. The release is created as a draft if it
+# does not exist yet, and is published automatically once all three operating
+# systems have their packages in it. Re-running replaces this system's files
+# rather than adding duplicates.
+#
+# To ship a new version, run Increase minor version (or major) first, then run
+# the three build pipelines.
 on:
-  workflow_call:
-    inputs:
-      ref:
-        description: Commit or tag to build
-        type: string
-        required: true
-      version:
-        description: Version to stamp into the package (empty keeps package.json)
-        type: string
-        required: false
-        default: ''
   workflow_dispatch:
     inputs:
       ref:
@@ -22,6 +18,16 @@ on:
         type: string
         required: false
         default: main
+  workflow_call:
+    inputs:
+      ref:
+        description: Commit or tag to build
+        type: string
+        required: false
+        default: main
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -35,17 +41,22 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Stamp the release version
-        if: inputs.version != ''
-        shell: bash
-        run: npm version "${{ inputs.version }}" --no-git-tag-version --allow-same-version
       - run: npm run build
       - run: npm test
       - name: Package
         run: npx electron-builder --linux --publish never
         env:
-          # Not needed on Linux; kept so the three files stay alike.
+          # No signing certificate: ship unsigned rather than fail the build.
           CSC_IDENTITY_AUTO_DISCOVERY: false
+      - name: Attach the packages to this version's release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          mkdir -p upload
+          cp release/*.deb release/*.AppImage release/*.tar.gz  upload/
+          bash scripts/attach-release-assets.sh upload
       - uses: actions/upload-artifact@v7
         with:
           name: pst-monster-linux
@@ -54,8 +65,6 @@ jobs:
             release/*.AppImage
             release/*.tar.gz
           if-no-files-found: error
-          # These artifacts only carry the packages to the release job, which
-          # attaches them to the GitHub Release. A week is long enough to grab
-          # one from a manual run, short enough that runs stop piling up: each
-          # build is hundreds of megabytes.
+          # A spare copy in case the upload to the release fails: it saves
+          # rebuilding. The release itself is the permanent home.
           retention-days: 7

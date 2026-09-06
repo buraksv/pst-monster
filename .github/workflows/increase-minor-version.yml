@@ -1,0 +1,36 @@
+name: Increase minor version
+
+# Raises the minor version, commits it to main, tags it and opens an empty
+# draft release for the new number. It builds nothing.
+#
+# Afterwards run Build Linux, Build Windows and Build macOS by hand. Each one
+# attaches its packages to this release, and the last one to finish publishes it.
+on:
+  workflow_dispatch:
+
+# One version bump at a time, so two runs cannot pick the same number.
+concurrency:
+  group: version
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    name: Raise the minor version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # The whole history, so the script can see which versions are tagged.
+          fetch-depth: 0
+          ref: main
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Bump, tag and open the draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: bash scripts/bump-version.sh minor

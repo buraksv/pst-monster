@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildNotes } from '../scripts/release-notes.mjs'
+import { buildNotes, missingPlatforms } from '../scripts/release-notes.mjs'
 
 /** Exactly what the three build pipelines upload for one version. */
 const FULL = [
@@ -60,9 +60,38 @@ describe('buildNotes', () => {
     expect(notes).toContain('pst-monster-1.2.0-linux-arm64.deb')
   })
 
-  it('leaves out rows for packages that are not in the release', () => {
+  it('gives a row only to packages that are actually in the release', () => {
     const notes = buildNotes(['pst-monster-1.2.0-windows-setup.exe'], '1.2.0')
-    expect(notes).not.toContain('macOS')
-    expect(notes).not.toContain('AppImage')
+    const rows = notes.split('\n').filter((l) => l.startsWith('| **'))
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toContain('windows-setup.exe')
+  })
+
+  it('says which operating systems have not been built yet', () => {
+    const notes = buildNotes(['pst-monster-1.2.0-windows-setup.exe'], '1.2.0')
+    expect(notes).toContain('macOS, Linux')
+  })
+
+  it('says nothing about missing systems once the release is complete', () => {
+    expect(buildNotes(FULL, '1.2.0')).not.toContain('henüz üretilmedi')
+  })
+})
+
+describe('missingPlatforms', () => {
+  it('finds nothing missing in a complete release', () => {
+    expect(missingPlatforms(FULL)).toEqual([])
+  })
+
+  it('names each system that has no package', () => {
+    expect(missingPlatforms(['pst-monster-1.2.0-linux-amd64.deb'])).toEqual(['windows', 'macos'])
+  })
+
+  it('counts a system as present from any one of its packages', () => {
+    // The AppImage alone is enough to say Linux is covered.
+    expect(missingPlatforms(['pst-monster-1.2.0-linux-x86_64.AppImage'])).not.toContain('linux')
+  })
+
+  it('ignores files it has no rule for', () => {
+    expect(missingPlatforms(['SHA256SUMS.txt', 'notes.md'])).toEqual(['windows', 'macos', 'linux'])
   })
 })
