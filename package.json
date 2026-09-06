@@ -1,6 +1,6 @@
 {
   "name": "pst-monster",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "PST Monster devours Outlook .pst archives and turns them into .eml files, folder structure intact",
   "main": "./out/main/index.js",
   "author": "Burak Savaşkan",
