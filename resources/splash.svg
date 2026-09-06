@@ -1,0 +1,53 @@
+<!--
+  Shown by the portable .exe while it unpacks itself, before the application
+  starts. Rendered to splash.bmp, which is what NSIS requires; see the README.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 300" width="500" height="300">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#232b3b"/>
+      <stop offset="1" stop-color="#0e1117"/>
+    </linearGradient>
+    <linearGradient id="bar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#2563eb"/>
+      <stop offset="1" stop-color="#5b9dff"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="500" height="300" fill="url(#bg)"/>
+  <circle cx="410" cy="40" r="150" fill="#2563eb" opacity="0.10"/>
+
+  <g transform="translate(44 78) scale(0.13)">
+    <circle cx="512" cy="562" r="332" fill="#2f6ff0"/>
+    <path d="M424 272 C438 196 458 162 474 160 C490 162 506 210 512 266 Z" fill="#5b9dff"/>
+    <path d="M520 254 C532 176 546 142 556 140 C568 142 586 200 594 252 Z" fill="#5b9dff"/>
+    <ellipse cx="548" cy="708" rx="238" ry="138" fill="#0b0e18"/>
+    <ellipse cx="560" cy="800" rx="150" ry="78" fill="#ef4c78"/>
+    <g fill="#ffffff">
+      <path d="M356 602 L392 682 L428 604 Z"/>
+      <path d="M446 586 L484 674 L522 586 Z"/>
+      <path d="M540 582 L578 672 L616 582 Z"/>
+      <path d="M634 594 L670 680 L706 596 Z"/>
+      <path d="M722 620 L748 692 L774 626 Z"/>
+    </g>
+    <circle cx="418" cy="438" r="74" fill="#ffffff"/>
+    <circle cx="626" cy="420" r="96" fill="#ffffff"/>
+    <circle cx="436" cy="446" r="36" fill="#12161f"/>
+    <circle cx="650" cy="430" r="46" fill="#12161f"/>
+    <circle cx="450" cy="432" r="11" fill="#ffffff"/>
+    <circle cx="668" cy="412" r="14" fill="#ffffff"/>
+  </g>
+
+  <text x="196" y="128" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif"
+        font-size="38" font-weight="700" fill="#ffffff">PST Monster</text>
+  <text x="198" y="158" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif"
+        font-size="14" fill="#9aa4b8">Outlook arşivinden .eml dosyalarına</text>
+
+  <rect x="196" y="188" width="258" height="6" rx="3" fill="#1f2532"/>
+  <rect x="196" y="188" width="150" height="6" rx="3" fill="url(#bar)"/>
+
+  <text x="196" y="222" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif"
+        font-size="14" fill="#c9d1e0">Açılıyor, lütfen bekleyin…</text>
+  <text x="196" y="244" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif"
+        font-size="12" fill="#6f7a8f">Starting, please wait…</text>
+</svg>

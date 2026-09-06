@@ -48,13 +48,30 @@ bağımlılıklar paketin içindedir.
 
 | İşletim sistemi | Dosya | Ne yapar |
 | --- | --- | --- |
-| **Windows 10/11** | `pst-monster-*-windows-setup.exe` | Kurulum sihirbazı, Başlat menüsüne ekler |
-| Windows, kurulumsuz | `pst-monster-*-windows-portable.exe` | Çift tıkla çalışır, kurulum yapmaz |
+| **Windows 10/11** | `pst-monster-*-windows-setup.exe` | **Önerilen.** Kurulum sihirbazı, Başlat menüsüne ekler |
+| Windows, kurulumsuz | `pst-monster-*-windows-portable.exe` | Kurulum yapmaz, ama açılışı yavaştır (aşağıya bakın) |
 | **macOS, Apple Silicon** | `pst-monster-*-macos-arm64.dmg` | M1 ve sonrası |
 | **macOS, Intel** | `pst-monster-*-macos-x64.dmg` | 2020 ve öncesi Mac'ler |
 | **Ubuntu, Debian** | `pst-monster-*-linux-amd64.deb` | Çift tıkla kurulur |
 | Diğer Linux | `pst-monster-*-linux-x64.tar.gz` | Çıkar, `pst-monster` dosyasına çift tıkla |
 | Linux, AppImage | `pst-monster-*-linux-x86_64.AppImage` | FUSE gerektirir, aşağıdaki nota bakın |
+
+<details>
+<summary><b>Windows'ta hangisini seçmeliyim?</b></summary>
+
+<br>
+
+**Kurulum sürümünü** (`windows-setup.exe`) seçin. Özellikle uygulamayı yazılımdan anlamayan
+kişilere dağıtacaksanız doğru olan budur.
+
+Taşınabilir sürüm tek dosya olduğu için kolay görünür, ama kendi kendini açan bir arşivdir:
+çift tıkladığınızda uygulamayı çalıştırmadan **önce** tamamını geçici klasöre çıkarır ve bunu
+her açılışta baştan yapar. Uygulama yaklaşık 300 MB olduğu için bu, makineye ve virüs
+tarayıcısına göre uzun sürebilir. O sırada ekranda bir açılış görseli gösterilir.
+
+Kurulum sürümü bu işi kurulum sırasında bir kez yapar; sonrasında her açılış bir saniye sürer.
+
+</details>
 
 ### İlk açılışta çıkan uyarılar
 
@@ -373,7 +390,9 @@ başlıkları zaten bozuktur, bu da aracın dayanıklılığını sınamak için
 
 Depodaki ekran görüntüleri `npm run capture` ile, uygulama gerçekten çalıştırılarak üretilir.
 Uygulama ikonunun kaynağı [`resources/icon.svg`](resources/icon.svg) dosyasıdır; `icon.png`
-ondan 1024×1024 olarak üretilir.
+ondan 1024×1024 olarak üretilir. Taşınabilir Windows sürümünün açılış görseli de aynı şekilde
+[`resources/splash.svg`](resources/splash.svg) dosyasından 500×300 `splash.bmp` olarak üretilir;
+NSIS yalnızca bitmap kabul eder.
 
 ## Bilinen sınırlar
 
@@ -382,6 +401,8 @@ ondan 1024×1024 olarak üretilir.
 - Çok büyük ekler bellekte tam olarak tutulur. Yüzlerce megabaytlık tek bir ek sorun çıkarabilir.
   Arşivleme bundan etkilenmez, dosyaları akıtarak yazar.
 - Paketler imzalanmamıştır; ilk açılışta bir kez onay istenir.
+- Windows taşınabilir sürümü her açılışta kendini geçici klasöre açar, bu yüzden kurulum
+  sürümünden belirgin biçimde yavaş başlar. Dağıtım için kurulum sürümü önerilir.
 - Arayüz Türkçedir.
 
 ## Katkı

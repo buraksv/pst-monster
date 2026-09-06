@@ -48,13 +48,30 @@ install**: the runtime, the app and every dependency ship inside the package.
 
 | Operating system | File | What it does |
 | --- | --- | --- |
-| **Windows 10/11** | `pst-monster-*-windows-setup.exe` | Installer, adds a Start menu entry |
-| Windows, no install | `pst-monster-*-windows-portable.exe` | Double-click to run |
+| **Windows 10/11** | `pst-monster-*-windows-setup.exe` | **Recommended.** Installer, adds a Start menu entry |
+| Windows, no install | `pst-monster-*-windows-portable.exe` | No install, but slow to start (see below) |
 | **macOS, Apple Silicon** | `pst-monster-*-macos-arm64.dmg` | M1 and later |
 | **macOS, Intel** | `pst-monster-*-macos-x64.dmg` | 2020 and earlier |
 | **Ubuntu, Debian** | `pst-monster-*-linux-amd64.deb` | Double-click to install |
 | Other Linux | `pst-monster-*-linux-x64.tar.gz` | Extract, run `pst-monster` |
 | Linux, AppImage | `pst-monster-*-linux-x86_64.AppImage` | Needs FUSE, see the note below |
+
+<details>
+<summary><b>Which one should I pick on Windows?</b></summary>
+
+<br>
+
+Take the **installer** (`windows-setup.exe`), especially if you are handing the app to people
+who do not work with software.
+
+The portable build looks simpler because it is one file, but it is a self-extracting archive:
+double-clicking it unpacks the whole application into a temp folder **before** starting it, and
+it does that again on every launch. The application is around 300 MB, so depending on the
+machine and its virus scanner that wait can be long. A splash image is shown while it happens.
+
+The installer does that work once, at install time. After that every launch takes about a second.
+
+</details>
 
 ### First-launch warnings
 
@@ -371,7 +388,9 @@ already mangled, which is exactly the kind of input this tool has to survive.
 
 Screenshots in this repository come from `npm run capture`, which drives the real app. The app
 icon is authored in [`resources/icon.svg`](resources/icon.svg); `icon.png` is rendered from it at
-1024×1024.
+1024×1024. The Windows portable splash comes the same way from
+[`resources/splash.svg`](resources/splash.svg), rendered to a 500×300 `splash.bmp`, since NSIS
+accepts nothing but a bitmap.
 
 ## Known limits
 
@@ -380,6 +399,8 @@ icon is authored in [`resources/icon.svg`](resources/icon.svg); `icon.png` is re
 - Very large attachments are held in memory in full. A single attachment of several hundred
   megabytes may cause trouble. Archiving is unaffected; it streams.
 - Packages are unsigned, so each operating system asks once on first launch.
+- The Windows portable build unpacks itself into a temp folder on every launch, so it starts
+  noticeably slower than the installed one. The installer is the better thing to hand out.
 - The interface is Turkish only.
 
 ## Contributing

@@ -18,6 +18,11 @@ files:
   - '!**/*.map'
   - '!node_modules/**/{test,tests,example,examples,doc,docs,.github}/**'
   - '!node_modules/**/*.{md,ts,map}'
+  # tar-stream reaches for these only under the Bare runtime; its package.json
+  # maps "fs" to bare-fs for the "bare" condition and to node's own fs
+  # otherwise. Under Electron they are never loaded, and they cost 5 MB and
+  # some 70 files that the portable build would unpack on every launch.
+  - '!node_modules/{bare-fs,bare-path,bare-url,bare-os,bare-events,bare-stream}/**'
 
 asarUnpack:
   # The workers are launched with utilityProcess.fork, and Node cannot execute a
@@ -61,6 +66,12 @@ nsis:
 
 portable:
   artifactName: ${name}-${version}-windows-portable.${ext}
+  # The portable build is a self-extracting archive: every launch unpacks the
+  # whole application to a temp folder before Electron starts. Without an image
+  # here NSIS runs silently, so the user double-clicks and sees nothing at all
+  # for the length of the extraction. This is the only splash that can help;
+  # a window drawn by the app itself would come after the wait, not during it.
+  splashImage: resources/splash.bmp
 
 # ------------------------------------------------------------------ macOS ----
 mac:

@@ -17,8 +17,8 @@ import { fileURLToPath } from 'node:url'
  * the file name; the first rule that matches a file claims it.
  */
 const ROWS = [
-  { match: /windows-setup\.exe$/i, platform: 'windows', os: 'Windows 10/11', note: 'Kurulum sihirbazı · Installer' },
-  { match: /windows-portable\.exe$/i, platform: 'windows', os: 'Windows 10/11', note: 'Kurulumsuz, çift tıkla · Portable' },
+  { match: /windows-setup\.exe$/i, platform: 'windows', os: 'Windows 10/11', note: '**Önerilen** · Kurulum sihirbazı, hızlı açılır · Installer, starts fast' },
+  { match: /windows-portable\.exe$/i, platform: 'windows', os: 'Windows 10/11', note: 'Kurulumsuz, ama her açılışta kendini açar, yavaştır · Portable, unpacks itself on every launch' },
   { match: /macos-arm64\.dmg$/i, platform: 'macos', os: 'macOS · Apple Silicon', note: 'M1 ve sonrası · M1 and later' },
   { match: /macos-x64\.dmg$/i, platform: 'macos', os: 'macOS · Intel', note: '2020 ve öncesi · 2020 and earlier' },
   { match: /macos-arm64\.zip$/i, platform: 'macos', os: 'macOS · Apple Silicon', note: '.zip olarak · as a zip' },
